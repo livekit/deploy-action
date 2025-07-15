@@ -27,7 +27,7 @@ func main() {
 		JSON:  true,
 		Level: "debug",
 	})
-	log := zl.WithValues()
+	log = zl.WithValues()
 	logger.SetLogger(log, "cloud-agents-github-plugin")
 
 	operation := os.Getenv("INPUT_OPERATION")
@@ -46,21 +46,24 @@ func main() {
 	secrets := make([]*livekit.AgentSecret, 0)
 	for _, env := range os.Environ() {
 		if strings.HasPrefix(env, "SECRET_") {
-			secretName := strings.TrimPrefix(env, "SECRET_")
+			secretParts := strings.Split(strings.TrimPrefix(env, "SECRET_"), "=")
+			secretName := secretParts[0]
+			secretValue := secretParts[1]
+
 			log.Infow("Loading secret", "secret", secretName)
 			if secretName == "LIVEKIT_URL" || secretName == "LIVEKIT_API_KEY" || secretName == "LIVEKIT_API_SECRET" {
 				switch secretName {
 				case "LIVEKIT_URL":
-					lkUrl = os.Getenv(env)
+					lkUrl = secretValue
 				case "LIVEKIT_API_KEY":
-					lkApiKey = os.Getenv(env)
+					lkApiKey = secretValue
 				case "LIVEKIT_API_SECRET":
-					lkApiSecret = os.Getenv(env)
+					lkApiSecret = secretValue
 				}
 			}
 			secrets = append(secrets, &livekit.AgentSecret{
 				Name:  secretName,
-				Value: []byte(os.Getenv(env)),
+				Value: []byte(secretValue),
 			})
 		}
 	}
@@ -268,6 +271,25 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 	if err := cmd.Run(); err != nil {
 		log.Errorw("Error committing file to git", err)
 		os.Exit(1)
+	}
+
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		// Get the current remote URL and modify it to include the token
+		cmd = exec.Command("git", "remote", "get-url", "origin")
+		cmd.Dir = workingDir
+		output, err := cmd.Output()
+		if err == nil {
+			remoteURL := strings.TrimSpace(string(output))
+			// Replace https://github.com with https://token@github.com
+			authenticatedURL := strings.Replace(remoteURL, "https://github.com", "https://"+githubToken+"@github.com", 1)
+			cmd = exec.Command("git", "remote", "set-url", "origin", authenticatedURL)
+			cmd.Dir = workingDir
+			if err := cmd.Run(); err != nil {
+				log.Errorw("Error setting git remote URL", err)
+				os.Exit(1)
+			}
+		}
 	}
 
 	cmd = exec.Command("git", "push")
