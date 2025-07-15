@@ -30,6 +30,7 @@ runs:
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
+          -e GITHUB_TOKEN="${{ github.token }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
           ${{ github.repository }}:latest
