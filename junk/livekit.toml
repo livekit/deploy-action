@@ -1,5 +1,0 @@
-[project]
-  subdomain = "wss://groq-toq-staging-zyynhgw2"
-
-[agent]
-  id = "CA_59xx2F5pxCqr"
