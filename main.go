@@ -80,6 +80,20 @@ func main() {
 		}
 	}
 
+	// some use cases require a list of secrets to be passed in as a comma separated list of SECRET_NAME=SECRET_VALUE
+	if os.Getenv("SECRET_LIST") != "" {
+		secretList := strings.Split(os.Getenv("SECRET_LIST"), ",")
+		for _, secret := range secretList {
+			secretParts := strings.Split(secret, "=")
+			secretName := secretParts[0]
+			secretValue := secretParts[1]
+			secrets = append(secrets, &livekit.AgentSecret{
+				Name:  secretName,
+				Value: []byte(secretValue),
+			})
+		}
+	}
+
 	client, err := lksdk.NewAgentClient(lkUrl, lkApiKey, lkApiSecret)
 	if err != nil {
 		log.Errorw("Failed to create agent client", err)
