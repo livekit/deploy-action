@@ -33,5 +33,5 @@ runs:
           -e GITHUB_TOKEN="${{ github.token }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          ${{ github.repository }}:latest
+          docker.io/livekit/cloud-agents-github-plugin:latest
 
