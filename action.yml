@@ -37,4 +37,4 @@ runs:
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          ${{ github.repository }}:v1
+          docker.io/livekit/cloud-agents-github-plugin::v1
