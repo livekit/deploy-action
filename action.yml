@@ -31,7 +31,10 @@ runs:
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e GITHUB_TOKEN="${{ github.token }}" \
+          -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
+          -e LIVEKIT_API_KEY="${{ env.LIVEKIT_API_KEY }}" \
+          -e LIVEKIT_API_SECRET="${{ env.LIVEKIT_API_SECRET }}" \
+          -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
           ${{ github.repository }}:v1
-
