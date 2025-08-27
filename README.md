@@ -166,18 +166,3 @@ And the checkout action should include the token:
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
-
-## Manual Workflow Triggers
-
-The create operation is designed to be triggered manually with a working directory input:
-
-```yaml
-on:
-  workflow_dispatch:
-    inputs:
-      working_directory:
-        description: 'Working directory for the agent'
-        required: true
-        default: '/'
-        type: string
-```

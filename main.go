@@ -48,7 +48,7 @@ func main() {
 				continue
 			}
 
-			secretParts := strings.Split(strings.TrimPrefix(env, "SECRET_"), "=")
+			secretParts := strings.SplitN(strings.TrimPrefix(env, "SECRET_"), "=", 2)
 			secretName := secretParts[0]
 			secretValue := secretParts[1]
 
@@ -86,7 +86,7 @@ func main() {
 	if os.Getenv("SECRET_LIST") != "" {
 		secretList := strings.Split(os.Getenv("SECRET_LIST"), ",")
 		for _, secret := range secretList {
-			secretParts := strings.Split(secret, "=")
+			secretParts := strings.SplitN(secret, "=", 2)
 			secretName := secretParts[0]
 			secretValue := secretParts[1]
 			secrets = append(secrets, &livekit.AgentSecret{
@@ -120,8 +120,6 @@ func main() {
 		log.Errorw("Invalid operation", nil, "operation", operation)
 		os.Exit(1)
 	}
-
-	fmt.Println("Hello, World!")
 }
 
 func sendSlackNotification(message string) {
@@ -279,13 +277,13 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 
 	cmd = exec.Command("git", "add", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
 	if err := cmd.Run(); err != nil {
-		log.Errorw("Error adding file to git", err)
+		log.Errorw("Error adding file to git", err, "dir", workingDir, "cmd", cmd.String())
 		os.Exit(1)
 	}
 
 	cmd = exec.Command("git", "commit", "-m", fmt.Sprintf("Add livekit.toml agent config for %s in %s", resp.AgentId, workingDir))
 	if err := cmd.Run(); err != nil {
-		log.Errorw("Error committing file to git", err)
+		log.Errorw("Error committing file to git", err, "dir", workingDir, "cmd", cmd.String())
 		os.Exit(1)
 	}
 
