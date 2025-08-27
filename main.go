@@ -11,9 +11,6 @@ import (
 	"github.com/livekit/protocol/logger"
 	lksdk "github.com/livekit/server-sdk-go/v2"
 
-	agentfs "github.com/livekit/livekit-cli/v2/pkg/agentfs"
-	lkclicfg "github.com/livekit/livekit-cli/v2/pkg/config"
-
 	"github.com/slack-go/slack"
 )
 
@@ -46,6 +43,11 @@ func main() {
 	secrets := make([]*livekit.AgentSecret, 0)
 	for _, env := range os.Environ() {
 		if strings.HasPrefix(env, "SECRET_") {
+			// ignore the SECRET_LIST env var
+			if env == "SECRET_LIST" {
+				continue
+			}
+
 			secretParts := strings.Split(strings.TrimPrefix(env, "SECRET_"), "=")
 			secretName := secretParts[0]
 			secretValue := secretParts[1]
@@ -145,7 +147,7 @@ func sendSlackNotification(message string) {
 }
 
 func agentStatus(client *lksdk.AgentClient, workingDir string) {
-	lkConfig, exists, err := lkclicfg.LoadTOMLFile(workingDir, lkclicfg.LiveKitTOMLFile)
+	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
 	if err != nil {
 		log.Errorw("Failed to load livekit.toml", err)
 		os.Exit(1)
@@ -183,7 +185,7 @@ func agentStatus(client *lksdk.AgentClient, workingDir string) {
 }
 
 func deployAgent(client *lksdk.AgentClient, secrets []*livekit.AgentSecret, workingDir string) {
-	lkConfig, exists, err := lkclicfg.LoadTOMLFile(workingDir, lkclicfg.LiveKitTOMLFile)
+	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
 	if err != nil {
 		log.Errorw("Failed to load livekit.toml", err)
 		os.Exit(1)
@@ -205,13 +207,13 @@ func deployAgent(client *lksdk.AgentClient, secrets []*livekit.AgentSecret, work
 		os.Exit(1)
 	}
 
-	err = agentfs.UploadTarball(workingDir, resp.PresignedUrl, []string{lkclicfg.LiveKitTOMLFile})
+	err = UploadTarball(workingDir, resp.PresignedUrl, []string{LiveKitTOMLFile})
 	if err != nil {
 		log.Errorw("Failed to upload tarball", err)
 		os.Exit(1)
 	}
 
-	err = agentfs.Build(context.Background(), resp.AgentId, &lkclicfg.ProjectConfig{
+	err = Build(context.Background(), resp.AgentId, &ProjectConfig{
 		URL:       lkUrl,
 		APIKey:    lkApiKey,
 		APISecret: lkApiSecret,
@@ -225,7 +227,7 @@ func deployAgent(client *lksdk.AgentClient, secrets []*livekit.AgentSecret, work
 }
 
 func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit.AgentSecret, workingDir string) {
-	lkConfig := lkclicfg.NewLiveKitTOML(subdomain).WithDefaultAgent()
+	lkConfig := NewLiveKitTOML(subdomain).WithDefaultAgent()
 
 	req := &livekit.CreateAgentRequest{
 		Secrets: secrets,
@@ -238,18 +240,18 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 	}
 
 	lkConfig.Agent.ID = resp.AgentId
-	if err := lkConfig.SaveTOMLFile(workingDir, lkclicfg.LiveKitTOMLFile); err != nil {
+	if err := lkConfig.SaveTOMLFile(workingDir, LiveKitTOMLFile); err != nil {
 		log.Errorw("Failed to save livekit.toml", err)
 		os.Exit(1)
 	}
 
-	err = agentfs.UploadTarball(workingDir, resp.PresignedUrl, []string{lkclicfg.LiveKitTOMLFile})
+	err = UploadTarball(workingDir, resp.PresignedUrl, []string{LiveKitTOMLFile})
 	if err != nil {
 		log.Errorw("Failed to upload tarball", err)
 		os.Exit(1)
 	}
 
-	err = agentfs.Build(context.Background(), resp.AgentId, &lkclicfg.ProjectConfig{
+	err = Build(context.Background(), resp.AgentId, &ProjectConfig{
 		URL:       lkUrl,
 		APIKey:    lkApiKey,
 		APISecret: lkApiSecret,
@@ -275,7 +277,7 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
-	cmd = exec.Command("git", "add", fmt.Sprintf("%s/%s", workingDir, lkclicfg.LiveKitTOMLFile))
+	cmd = exec.Command("git", "add", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
 	if err := cmd.Run(); err != nil {
 		log.Errorw("Error adding file to git", err)
 		os.Exit(1)

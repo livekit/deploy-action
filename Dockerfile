@@ -13,7 +13,7 @@ COPY . .
 ENV CGO_ENABLED=0 
 ENV GOOS=linux 
 ENV GOARCH=amd64
-RUN go build -o cloud-agents-github-plugin ./cmd/cloud-agents-github-plugin
+RUN go build -o cloud-agents-github-plugin .
 
 
 FROM debian:stable-slim
