@@ -35,6 +35,4 @@ COPY --from=builder /build/cloud-agents-github-plugin /app/cloud-agents-github-p
 RUN chown -R appuser:appuser /app && \
     chmod +x /app/cloud-agents-github-plugin
 
-USER appuser
-
-ENTRYPOINT ["/app/cloud-agents-github-plugin"]
+ENTRYPOINT ["sh", "-c", "chown -R appuser:appuser /workspace && exec su appuser -c '/app/cloud-agents-github-plugin'"]
