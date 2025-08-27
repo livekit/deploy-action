@@ -329,9 +329,24 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
-	outputData := fmt.Sprintf("branch_name=%s\nagent_id=%s\n", branchName, resp.AgentId)
-	if err := os.WriteFile("/workspace/.github/outputs", []byte(outputData), 0644); err != nil {
-		log.Errorw("Failed to write outputs file", err)
+	githubOutput := os.Getenv("GITHUB_OUTPUT")
+	if githubOutput == "" {
+		fmt.Println("GITHUB_OUTPUT environment variable is not set. Cannot set output.")
+		os.Exit(1)
+	}
+
+	f, err := os.OpenFile(githubOutput, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		fmt.Printf("Error opening GITHUB_OUTPUT file: %v\n", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	outputLine := fmt.Sprintf("branch_name=%s\nagent_id=%s\n", branchName, resp.AgentId)
+	fmt.Printf("Writing to $GITHUB_OUTPUT: %s\n", outputLine)
+	if _, err := f.WriteString(outputLine + "\n"); err != nil {
+		fmt.Printf("Error writing to GITHUB_OUTPUT: %v\n", err)
+		os.Exit(1)
 	}
 
 	log.Infow("Successfully created and pushed branch", "branch", branchName, "agent_id", resp.AgentId)
