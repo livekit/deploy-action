@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/livekit/protocol/livekit"
 	"github.com/livekit/protocol/logger"
@@ -281,6 +282,16 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
+	timestamp := time.Now().Format("20060102-150405")
+	branchName := fmt.Sprintf("add-agent-config-%s", timestamp)
+
+	cmd = exec.Command("git", "checkout", "-b", branchName)
+	cmd.Dir = workingDir
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error creating new branch", err, "branch", branchName)
+		os.Exit(1)
+	}
+
 	cmd = exec.Command("git", "add", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
 	if err := cmd.Run(); err != nil {
 		log.Errorw("Error adding file to git", err, "dir", workingDir, "cmd", cmd.String())
@@ -312,11 +323,11 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		}
 	}
 
-	cmd = exec.Command("git", "push")
+	cmd = exec.Command("git", "push", "-u", "origin", branchName)
 	if err := cmd.Run(); err != nil {
-		log.Errorw("Error pushing file to git", err)
+		log.Errorw("Error pushing branch to git", err, "branch", branchName)
 		os.Exit(1)
 	}
 
-	log.Infow("livekit.toml agent config committed", "agent", resp.AgentId)
+	log.Infow("Successfully created and pushed branch", "branch", branchName, "agent_id", resp.AgentId)
 }
