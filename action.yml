@@ -31,18 +31,11 @@ runs:
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e GITHUB_TOKEN="${{ github.token }}" \
-          -e GITHUB_OUTPUT="${GITHUB_OUTPUT}" \
+          -e GITHUB_ENV="${GITHUB_ENV}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
           -e LIVEKIT_API_KEY="${{ env.LIVEKIT_API_KEY }}" \
           -e LIVEKIT_API_SECRET="${{ env.LIVEKIT_API_SECRET }}" \
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v109
-outputs:
-  branch_name:
-    description: The name of the branch created
-    value: ${{ steps.livekit.outputs.branch_name }}
-  agent_id:
-    description: The ID of the agent created
-    value: ${{ steps.livekit.outputs.agent_id }}
+          docker.io/livekit/cloud-agents-github-plugin:v110
