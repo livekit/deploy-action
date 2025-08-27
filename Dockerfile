@@ -27,13 +27,10 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
 WORKDIR /app
 
 COPY --from=builder /build/cloud-agents-github-plugin /app/cloud-agents-github-plugin
 
-RUN chown -R appuser:appuser /app && \
-    chmod +x /app/cloud-agents-github-plugin
+RUN chmod +x /app/cloud-agents-github-plugin
 
-ENTRYPOINT ["sh", "-c", "chown -R appuser:appuser /workspace && exec su appuser -c '/app/cloud-agents-github-plugin'"]
+ENTRYPOINT ["/app/cloud-agents-github-plugin"]
