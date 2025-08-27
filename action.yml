@@ -25,7 +25,6 @@ runs:
     - name: Run LiveKit Cloud Agent Operation
       shell: bash
       run: |
-        mkdir -p /tmp/shared
         docker run --rm \
           -v /tmp/shared:/tmp/shared \
           -e INPUT_OPERATION="${{ inputs.OPERATION }}" \
@@ -38,8 +37,8 @@ runs:
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v111
+          docker.io/livekit/cloud-agents-github-plugin:v112
         
-        if [ -f /tmp/shared/env_vars ]; then
-          cat /tmp/shared/env_vars >> $GITHUB_ENV
+        if [ -f .github/outputs ]; then
+          cat .github/outputs >> $GITHUB_OUTPUT
         fi

@@ -266,17 +266,17 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 
 	log.Infow("Agent created", "agent", resp.AgentId)
 
-	f, err := os.OpenFile("/tmp/shared/env_vars", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile(".github/outputs", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-		fmt.Printf("Error opening /tmp/shared/env_vars file: %v\n", err)
+		fmt.Printf("Error opening .github/outputs file: %v\n", err)
 		os.Exit(1)
 	}
 	defer f.Close()
 
 	outputLine := fmt.Sprintf("agent_id=%s\n", resp.AgentId)
-	fmt.Printf("Writing to /tmp/shared/env_vars: %s\n", outputLine)
+	fmt.Printf("Writing to .github/outputs: %s\n", outputLine)
 	if _, err := f.WriteString(outputLine + "\n"); err != nil {
-		fmt.Printf("Error writing to /tmp/shared/env_vars: %v\n", err)
+		fmt.Printf("Error writing to .github/outputs: %v\n", err)
 		os.Exit(1)
 	}
 
