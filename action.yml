@@ -25,17 +25,21 @@ runs:
     - name: Run LiveKit Cloud Agent Operation
       shell: bash
       run: |
+        mkdir -p /tmp/shared
         docker run --rm \
+          -v /tmp/shared:/tmp/shared \
           -e INPUT_OPERATION="${{ inputs.OPERATION }}" \
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
-          -e GITHUB_TOKEN="${{ github.token }}" \
-          -e GITHUB_ENV="${GITHUB_ENV}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
           -e LIVEKIT_API_KEY="${{ env.LIVEKIT_API_KEY }}" \
           -e LIVEKIT_API_SECRET="${{ env.LIVEKIT_API_SECRET }}" \
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v110
+          docker.io/livekit/cloud-agents-github-plugin:v111
+        
+        if [ -f /tmp/shared/env_vars ]; then
+          cat /tmp/shared/env_vars >> $GITHUB_ENV
+        fi
