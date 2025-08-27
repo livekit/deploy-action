@@ -38,7 +38,7 @@ runs:
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v108
+          docker.io/livekit/cloud-agents-github-plugin:v109
 outputs:
   branch_name:
     description: The name of the branch created
