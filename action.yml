@@ -18,11 +18,19 @@ inputs:
   SLACK_CHANNEL:
     description: Slack channel to send notifications to (e.g., #general)
     required: false
+outputs:
+  branch_name:
+    description: The name of the branch created
+    value: ${{ steps.livekit.outputs.branch_name }}
+  agent_id:
+    description: The ID of the agent created
+    value: ${{ steps.livekit.outputs.agent_id }}
 
 runs:
   using: composite
   steps:
     - name: Run LiveKit Cloud Agent Operation
+      id: livekit
       shell: bash
       run: |
         docker run --rm \
@@ -37,4 +45,8 @@ runs:
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v104
+          docker.io/livekit/cloud-agents-github-plugin:v105
+
+        if [ -f .github/outputs ]; then
+          cat .github/outputs >> $GITHUB_OUTPUT
+        fi
