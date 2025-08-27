@@ -87,8 +87,14 @@ func main() {
 		secretList := strings.Split(os.Getenv("SECRET_LIST"), ",")
 		for _, secret := range secretList {
 			secretParts := strings.SplitN(secret, "=", 2)
+			if len(secretParts) != 2 {
+				log.Errorw("Invalid secret format", nil, "secret", secret)
+				os.Exit(1)
+			}
+
 			secretName := secretParts[0]
 			secretValue := secretParts[1]
+			log.Infow("Loading secret from SECRET_LIST", "secret", secretName)
 			secrets = append(secrets, &livekit.AgentSecret{
 				Name:  secretName,
 				Value: []byte(secretValue),
