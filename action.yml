@@ -31,6 +31,7 @@ runs:
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e GITHUB_TOKEN="${{ github.token }}" \
+          -e GITHUB_OUTPUT="${GITHUB_OUTPUT}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
           -e LIVEKIT_API_KEY="${{ env.LIVEKIT_API_KEY }}" \
           -e LIVEKIT_API_SECRET="${{ env.LIVEKIT_API_SECRET }}" \
@@ -45,3 +46,10 @@ runs:
           echo "Warning: .github/outputs file not found"
           ls -la .github/ || echo "No .github directory"
         fi
+outputs:
+  branch_name:
+    description: The name of the branch created
+    value: ${{ steps.livekit.outputs.branch_name }}
+  agent_id:
+    description: The ID of the agent created
+    value: ${{ steps.livekit.outputs.agent_id }}
