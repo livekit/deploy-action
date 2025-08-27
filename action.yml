@@ -39,6 +39,9 @@ runs:
           -w "/workspace" \
           docker.io/livekit/cloud-agents-github-plugin:v112
         
+        sudo chown -R $USER:$USER .github/ || echo "No sudo available"
+        chmod -R 644 .github/outputs || echo "File not found or no permissions"
+
         if [ -f .github/outputs ]; then
-          cat .github/outputs >> $GITHUB_OUTPUT
+          cat .github/outputs >> $GITHUB_ENV
         fi
