@@ -39,13 +39,6 @@ runs:
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
           docker.io/livekit/cloud-agents-github-plugin:v107
-
-        if [ -f .github/outputs ]; then
-          cat .github/outputs >> $GITHUB_OUTPUT
-        else
-          echo "Warning: .github/outputs file not found"
-          ls -la .github/ || echo "No .github directory"
-        fi
 outputs:
   branch_name:
     description: The name of the branch created
