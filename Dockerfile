@@ -2,27 +2,39 @@ FROM golang:1.24 AS builder
 
 WORKDIR /build
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y git build-essential
-COPY go.mod go.mod
-COPY go.sum go.sum
-
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
 ENV CGO_ENABLED=0 
 ENV GOOS=linux 
 ENV GOARCH=amd64
-RUN go build -o cloud-agents-github-plugin .
+RUN go build -ldflags="-w -s" -o cloud-agents-github-plugin .
 
 
 FROM debian:stable-slim
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-COPY --from=builder /build/cloud-agents-github-plugin /usr/local/bin/cloud-agents-github-plugin
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-RUN chmod +x /usr/local/bin/cloud-agents-github-plugin
-ENTRYPOINT [ "cloud-agents-github-plugin" ]
+WORKDIR /app
+
+COPY --from=builder /build/cloud-agents-github-plugin /app/cloud-agents-github-plugin
+
+RUN chown -R appuser:appuser /app && \
+    chmod +x /app/cloud-agents-github-plugin
+
+USER appuser
+
+ENTRYPOINT ["/app/cloud-agents-github-plugin"]
