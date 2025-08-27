@@ -37,7 +37,7 @@ runs:
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v105
+          docker.io/livekit/cloud-agents-github-plugin:v106
 
         if [ -f .github/outputs ]; then
           cat .github/outputs >> $GITHUB_OUTPUT
