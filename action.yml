@@ -37,11 +37,12 @@ runs:
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v112
+          docker.io/livekit/cloud-agents-github-plugin:v113
         
         sudo chown -R $USER:$USER .github/ || echo "No sudo available"
         chmod -R 644 .github/outputs || echo "File not found or no permissions"
 
         if [ -f .github/outputs ]; then
           cat .github/outputs >> $GITHUB_ENV
+          rm .github/outputs
         fi

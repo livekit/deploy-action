@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/livekit/protocol/livekit"
 	"github.com/livekit/protocol/logger"
@@ -266,6 +268,67 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 
 	log.Infow("Agent created", "agent", resp.AgentId)
 
+	cmd := exec.Command("git", "config", "user.name", "github-actions[bot]")
+	cmd.Dir = workingDir
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error configuring user.name", err)
+		os.Exit(1)
+	}
+
+	cmd = exec.Command("git", "config", "user.email", "github-actions[bot]@users.noreply.github.com")
+	cmd.Dir = workingDir
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error configuring user.email", err)
+		os.Exit(1)
+	}
+
+	timestamp := time.Now().Format("20060102-150405")
+	branchName := fmt.Sprintf("add-agent-config-%s", timestamp)
+
+	cmd = exec.Command("git", "checkout", "-b", branchName)
+	cmd.Dir = workingDir
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error creating new branch", err, "branch", branchName)
+		os.Exit(1)
+	}
+
+	cmd = exec.Command("git", "add", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error adding file to git", err, "dir", workingDir, "cmd", cmd.String())
+		os.Exit(1)
+	}
+
+	cmd = exec.Command("git", "commit", "-m", fmt.Sprintf("Add livekit.toml agent config for %s in %s", resp.AgentId, workingDir))
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error committing file to git", err, "dir", workingDir, "cmd", cmd.String())
+		os.Exit(1)
+	}
+
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		// Get the current remote URL and modify it to include the token
+		cmd = exec.Command("git", "remote", "get-url", "origin")
+		cmd.Dir = workingDir
+		output, err := cmd.Output()
+		if err == nil {
+			remoteURL := strings.TrimSpace(string(output))
+			// Replace https://github.com with https://token@github.com
+			authenticatedURL := strings.Replace(remoteURL, "https://github.com", "https://"+githubToken+"@github.com", 1)
+			cmd = exec.Command("git", "remote", "set-url", "origin", authenticatedURL)
+			cmd.Dir = workingDir
+			if err := cmd.Run(); err != nil {
+				log.Errorw("Error setting git remote URL", err)
+				os.Exit(1)
+			}
+		}
+	}
+
+	cmd = exec.Command("git", "push", "-u", "origin", branchName)
+	if err := cmd.Run(); err != nil {
+		log.Errorw("Error pushing branch to git", err, "branch", branchName)
+		os.Exit(1)
+	}
+
 	f, err := os.OpenFile(".github/outputs", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		fmt.Printf("Error opening .github/outputs file: %v\n", err)
@@ -273,12 +336,12 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 	}
 	defer f.Close()
 
-	outputLine := fmt.Sprintf("agent_id=%s\n", resp.AgentId)
+	outputLine := fmt.Sprintf("branch_name=%s\nagent_id=%s\n", branchName, resp.AgentId)
 	fmt.Printf("Writing to .github/outputs: %s\n", outputLine)
 	if _, err := f.WriteString(outputLine + "\n"); err != nil {
 		fmt.Printf("Error writing to .github/outputs: %v\n", err)
 		os.Exit(1)
 	}
 
-	log.Infow("Successfully created and pushed branch", "agent_id", resp.AgentId)
+	log.Infow("Successfully created and pushed branch", "branch_name", branchName, "agent_id", resp.AgentId)
 }
