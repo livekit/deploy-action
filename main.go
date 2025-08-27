@@ -329,5 +329,10 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
+	outputData := fmt.Sprintf("branch_name=%s\nagent_id=%s\n", branchName, resp.AgentId)
+	if err := os.WriteFile("/workspace/.github/outputs", []byte(outputData), 0644); err != nil {
+		log.Errorw("Failed to write outputs file", err)
+	}
+
 	log.Infow("Successfully created and pushed branch", "branch", branchName, "agent_id", resp.AgentId)
 }
