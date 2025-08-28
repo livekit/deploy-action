@@ -4,12 +4,12 @@ A GitHub Action for creating, deploying, and getting the status of LiveKit Cloud
 
 ## Usage
 
-### Create a New Agent
+### Manually Create a New Agent or Deploy a new version
 
-The create operation can only be triggered manually and requires a working directory input:
+The create or deploy operations in this workflow are triggered manually and requires a working directory input:
 
 ```yaml
-name: Create LiveKit Cloud Agent
+name: Create or Deploy LiveKit Cloud Agent Manually
 on:
   workflow_dispatch:
     inputs:
@@ -69,6 +69,27 @@ jobs:
 
           base: main
           delete-branch: true
+  deploy-agent:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.working_directory }}
+    if: github.event.inputs.operation == 'deploy'
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy LiveKit Cloud Agent
+        uses: livekit/cloud-agents-github-plugin@main
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.SECRET_LIST }}
+        with:
+          OPERATION: deploy
+          WORKING_DIRECTORY: ${{ github.event.inputs.working_directory }}
 ```
 
 ### Deploy an Existing Agent on a file change
@@ -106,38 +127,6 @@ jobs:
         with:
           OPERATION: deploy
           WORKING_DIRECTORY: test-agent
-```
-
-### Deploy an Existing Agent Manually
-
-```yaml
-name: Deploy LiveKit Cloud Agent
-on:
-  push:
-    branches: [main]
-    paths: ['my-agent/**']
-
-  deploy-agent:
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.working_directory }}
-    if: github.event.inputs.operation == 'deploy'
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Deploy LiveKit Cloud Agent
-        uses: livekit/cloud-agents-github-plugin@main
-        env:
-          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
-          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
-          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
-          SECRET_LIST: ${{ secrets.SECRET_LIST }}
-        with:
-          OPERATION: deploy
-          WORKING_DIRECTORY: ${{ github.event.inputs.working_directory }}
 ```
 
 ### Check Agent Status
@@ -194,7 +183,7 @@ These can be set either as direct environment variables or as secrets with `SECR
 Pass any number of secrets to your agent by setting the `SECRET_LIST` var with a comma separated list in your workflow:
 
 ```yaml
-  OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AUTH_TOKEN=${{ secrets.AUTH_TOKEN }}
+  OPENAI_API_KEY={{key}},AUTH_TOKEN={{token}}
   # Add as many secrets as needed...
 ```
 
