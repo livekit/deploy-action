@@ -42,5 +42,4 @@ runs:
 
         if [ -f "lk-outputs-${{ github.run_id }}" ]; then
           cat "lk-outputs-${{ github.run_id }}" >> $GITHUB_OUTPUT
-          rm "lk-outputs-${{ github.run_id }}"
         fi
