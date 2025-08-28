@@ -38,16 +38,7 @@ runs:
           -e GITHUB_RUN_ID="${{ github.run_id }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v114
-
-        RUNNER_USER=$(whoami)
-            RUNNER_UID=$(id -u)
-            RUNNER_GID=$(id -g)
-            
-            echo "Runner user: $RUNNER_USER (UID: $RUNNER_UID, GID: $RUNNER_GID)"
-            
-            sudo chown -R $RUNNER_UID:$RUNNER_GID .git/ || echo "No sudo available"
-            chmod -R 755 .git/ || echo "No permissions to change"
+          docker.io/livekit/cloud-agents-github-plugin:v115
 
         if [ -f "lk-outputs-${{ github.run_id }}" ]; then
           cat "lk-outputs-${{ github.run_id }}" >> $GITHUB_OUTPUT
