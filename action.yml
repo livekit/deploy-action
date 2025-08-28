@@ -40,6 +40,14 @@ runs:
           -w "/workspace" \
           docker.io/livekit/cloud-agents-github-plugin:v115
 
+        RUNNER_USER=$(whoami)
+            RUNNER_UID=$(id -u)
+            RUNNER_GID=$(id -g)
+            
+            echo "Runner user: $RUNNER_USER (UID: $RUNNER_UID, GID: $RUNNER_GID)"
+
         if [ -f "lk-outputs-${{ github.run_id }}" ]; then
+          sudo chown $RUNNER_UID:$RUNNER_GID "lk-outputs-${{ github.run_id }}" || echo "No sudo available"
+          chmod 644 "lk-outputs-${{ github.run_id }}" || echo "No permissions to change"
           cat "lk-outputs-${{ github.run_id }}" >> $GITHUB_OUTPUT
         fi
