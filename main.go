@@ -270,23 +270,4 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 	}
 
 	log.Infow("Agent created", "agent", resp.AgentId)
-
-	githubRunId := os.Getenv("GITHUB_RUN_ID")
-	outputFile := fmt.Sprintf("lk-tmp-outputs-%s", githubRunId)
-
-	f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		fmt.Printf("Error opening %s file: %v\n", outputFile, err)
-		os.Exit(1)
-	}
-	defer f.Close()
-
-	outputLine := fmt.Sprintf("agent_id=%s\n", resp.AgentId)
-	fmt.Printf("Writing to %s: %s\n", outputFile, outputLine)
-	if _, err := f.WriteString(outputLine + "\n"); err != nil {
-		fmt.Printf("Error writing to %s: %v\n", outputFile, err)
-		os.Exit(1)
-	}
-
-	log.Infow("Successfully created agent", "agent_id", resp.AgentId)
 }
