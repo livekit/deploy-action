@@ -35,11 +35,12 @@ runs:
           -e LIVEKIT_API_KEY="${{ env.LIVEKIT_API_KEY }}" \
           -e LIVEKIT_API_SECRET="${{ env.LIVEKIT_API_SECRET }}" \
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
+          -e GITHUB_RUN_ID="${{ github.run_id }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
           docker.io/livekit/cloud-agents-github-plugin:v114
 
-        if [ -f lk-tmp-outputs ]; then
-          cat lk-tmp-outputs >> $GITHUB_ENV
-          rm lk-tmp-outputs
+        if [ -f "lk-outputs-${{ github.run_id }}" ]; then
+          cat "lk-outputs-${{ github.run_id }}" >> $GITHUB_OUTPUT
+          rm "lk-outputs-${{ github.run_id }}"
         fi

@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/livekit/protocol/livekit"
 	"github.com/livekit/protocol/logger"
@@ -287,8 +286,7 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
-	timestamp := time.Now().Format("20060102-150405")
-	branchName := fmt.Sprintf("add-agent-config-%s", timestamp)
+	branchName := fmt.Sprintf("%s-config", resp.AgentId)
 
 	cmd = exec.Command("git", "checkout", "-b", branchName)
 	cmd.Dir = workingDir
@@ -334,17 +332,20 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
-	f, err := os.OpenFile("lk-tmp-outputs", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	githubRunId := os.Getenv("GITHUB_RUN_ID")
+	outputFile := fmt.Sprintf("lk-tmp-outputs-%s", githubRunId)
+
+	f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-		fmt.Printf("Error opening lk-tmp-outputs file: %v\n", err)
+		fmt.Printf("Error opening %s file: %v\n", outputFile, err)
 		os.Exit(1)
 	}
 	defer f.Close()
 
 	outputLine := fmt.Sprintf("branch_name=%s\nagent_id=%s\n", branchName, resp.AgentId)
-	fmt.Printf("Writing to lk-tmp-outputs: %s\n", outputLine)
+	fmt.Printf("Writing to %s: %s\n", outputFile, outputLine)
 	if _, err := f.WriteString(outputLine + "\n"); err != nil {
-		fmt.Printf("Error writing to lk-tmp-outputs: %v\n", err)
+		fmt.Printf("Error writing to %s: %v\n", outputFile, err)
 		os.Exit(1)
 	}
 
