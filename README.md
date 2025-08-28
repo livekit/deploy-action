@@ -16,38 +16,99 @@ on:
       working_directory:
         description: 'Working directory for the agent'
         required: true
-        default: '/'
         type: string
+        default: '.'
+      operation:
+        description: 'Which operation to run'
+        required: true
+        type: choice
+        options:
+          - create
+          - deploy
+        default: 'create'
 
 jobs:
   create-agent:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.working_directory }}
+    if: github.event.inputs.operation == 'create'
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: write
+      actions: read
     
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Create LiveKit Cloud Agent
+        id: livekit
         uses: livekit/cloud-agents-github-plugin@main
         env:
-          SECRET_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SECRET_AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.SECRET_LIST }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           OPERATION: create
           WORKING_DIRECTORY: ${{ github.event.inputs.working_directory }}
+      - name: Create Pull Request # create a pull request to add the newly created livekit.toml
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: |
+            ${{ github.event.inputs.working_directory }}/livekit.toml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: cloud-agent-${{ github.run_id }}
+          title: "Add LiveKit agent config"
+          commit-message: "Add LiveKit agent config"
+          body: |
+            This PR adds the LiveKit agent configuration
+
+          base: main
+          delete-branch: true
 ```
 
-### Deploy an Existing Agent
+### Deploy an Existing Agent on a file change
+
+```yaml
+name: Deploy test-agent on changes
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'test-agent/**'
+      - '!test-agent/livekit.toml'
+      - '!test-agent/README.md'
+      - '!test-agent/**/*.md'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: test-agent
+    concurrency:
+      group: ${{ github.workflow }}-test-agent
+      cancel-in-progress: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy LiveKit Cloud Agent
+        uses: livekit/cloud-agents-github-plugin@main
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.SECRET_LIST }}
+        with:
+          OPERATION: deploy
+          WORKING_DIRECTORY: test-agent
+```
+
+### Deploy an Existing Agent Manually
 
 ```yaml
 name: Deploy LiveKit Cloud Agent
@@ -56,9 +117,10 @@ on:
     branches: [main]
     paths: ['my-agent/**']
 
-jobs:
   deploy-agent:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.working_directory }}
+    if: github.event.inputs.operation == 'deploy'
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -69,10 +131,10 @@ jobs:
       - name: Deploy LiveKit Cloud Agent
         uses: livekit/cloud-agents-github-plugin@main
         env:
-          SECRET_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.SECRET_LIST }}
         with:
           OPERATION: deploy
           WORKING_DIRECTORY: ${{ github.event.inputs.working_directory }}
@@ -129,12 +191,10 @@ These can be set either as direct environment variables or as secrets with `SECR
 
 ### Agent Secrets
 
-Pass any number of secrets to your agent by prefixing them with `SECRET_`:
+Pass any number of secrets to your agent by setting the `SECRET_LIST` var with a comma separated list in your workflow:
 
 ```yaml
-env:
-  SECRET_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  SECRET_AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AUTH_TOKEN=${{ secrets.AUTH_TOKEN }}
   # Add as many secrets as needed...
 ```
 
@@ -157,6 +217,7 @@ The create operation performs git commits and pushes, so workflows need proper p
 permissions:
   contents: write
   pull-requests: write
+  actions: read
 ```
 
 And the checkout action should include the token:
