@@ -26,23 +26,16 @@ runs:
       shell: bash
       run: |
         docker run --rm \
+          -v /tmp/shared:/tmp/shared \
           -e INPUT_OPERATION="${{ inputs.OPERATION }}" \
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
-          -e GITHUB_TOKEN="${{ github.token }}" \
-          -e GITHUB_OUTPUT="${GITHUB_OUTPUT}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
           -e LIVEKIT_API_KEY="${{ env.LIVEKIT_API_KEY }}" \
           -e LIVEKIT_API_SECRET="${{ env.LIVEKIT_API_SECRET }}" \
           -e SECRET_LIST="${{ env.SECRET_LIST }}" \
+          -e GITHUB_RUN_ID="${{ github.run_id }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v108
-outputs:
-  branch_name:
-    description: The name of the branch created
-    value: ${{ steps.livekit.outputs.branch_name }}
-  agent_id:
-    description: The ID of the agent created
-    value: ${{ steps.livekit.outputs.agent_id }}
+          docker.io/livekit/cloud-agents-github-plugin:v116

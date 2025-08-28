@@ -23,14 +23,11 @@ FROM debian:stable-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    git \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
 WORKDIR /app
 
 COPY --from=builder /build/cloud-agents-github-plugin /app/cloud-agents-github-plugin
-
-RUN chmod +x /app/cloud-agents-github-plugin
 
 ENTRYPOINT ["/app/cloud-agents-github-plugin"]
