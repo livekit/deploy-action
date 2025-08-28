@@ -232,6 +232,11 @@ func deployAgent(client *lksdk.AgentClient, secrets []*livekit.AgentSecret, work
 }
 
 func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit.AgentSecret, workingDir string) {
+	if _, err := os.Stat(fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile)); err == nil {
+		log.Infow("livekit.toml already exists", "path", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
+		os.Exit(0)
+	}
+
 	lkConfig := NewLiveKitTOML(subdomain).WithDefaultAgent()
 
 	req := &livekit.CreateAgentRequest{
@@ -329,17 +334,17 @@ func createAgent(client *lksdk.AgentClient, subdomain string, secrets []*livekit
 		os.Exit(1)
 	}
 
-	f, err := os.OpenFile(".github/outputs", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile("lk-tmp-outputs", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
-		fmt.Printf("Error opening .github/outputs file: %v\n", err)
+		fmt.Printf("Error opening lk-tmp-outputs file: %v\n", err)
 		os.Exit(1)
 	}
 	defer f.Close()
 
 	outputLine := fmt.Sprintf("branch_name=%s\nagent_id=%s\n", branchName, resp.AgentId)
-	fmt.Printf("Writing to .github/outputs: %s\n", outputLine)
+	fmt.Printf("Writing to lk-tmp-outputs: %s\n", outputLine)
 	if _, err := f.WriteString(outputLine + "\n"); err != nil {
-		fmt.Printf("Error writing to .github/outputs: %v\n", err)
+		fmt.Printf("Error writing to lk-tmp-outputs: %v\n", err)
 		os.Exit(1)
 	}
 
