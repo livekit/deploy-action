@@ -6,7 +6,8 @@ A GitHub Action for creating, deploying, and getting the status of LiveKit Cloud
 
 ### Manually Create a New Agent or Deploy a new version
 
-The create or deploy operations in this workflow are triggered manually and requires a working directory input:
+The create or deploy operations in this workflow are triggered manually and requires a working directory input.
+**Automatic Deployment**: When creating a new agent, a deployment happens automatically. You do **not** need to manually call the deploy operation after creation.
 
 ```yaml
 name: Create or Deploy LiveKit Cloud Agent Manually
