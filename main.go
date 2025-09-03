@@ -157,7 +157,7 @@ func main() {
 			log.Errorw("Failed to get agent status", err)
 			os.Exit(1)
 		}
-		log.Infow("Agent status retry", "status", "running")
+		log.Infow("Agent status check completed", "status", "running")
 	default:
 		log.Errorw("Invalid operation", nil, "operation", operation)
 		os.Exit(1)
