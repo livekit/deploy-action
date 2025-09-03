@@ -70,6 +70,20 @@ jobs:
 
           base: main
           delete-branch: true
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: cloud-agent-${{ github.run_id }}
+      - name: Status Check # block until the agent is in the 'Running' state
+        uses: livekit/cloud-agents-github-plugin@dan/agent-status
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+        with:
+          OPERATION: status-retry
+          WORKING_DIRECTORY: ${{ github.event.inputs.working_directory }}
+          TIMEOUT: 5m
   deploy-agent:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.working_directory }}
@@ -160,14 +174,29 @@ jobs:
           SLACK_CHANNEL: "#monitoring"
 ```
 
+### Check Agent Status with Retry until timeout or status == Running
+```yaml
+      - name: Status Check
+        uses: livekit/cloud-agents-github-plugin@dan/agent-status
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+        with:
+          OPERATION: status-retry
+          WORKING_DIRECTORY: ${{ github.event.inputs.working_directory }}
+          TIMEOUT: 5m
+```
+
 ## Inputs
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `OPERATION` | Operation to perform (`create`, `deploy`, `status`) | Yes | `status` |
+| `OPERATION` | Operation to perform (`create`, `deploy`, `status`, `status-retry`) | Yes | `status` |
 | `WORKING_DIRECTORY` | Directory containing the agent configuration | No | `.` |
 | `SLACK_TOKEN` | Slack Bot Token for sending notifications | No | - |
 | `SLACK_CHANNEL` | Slack channel to send notifications to (e.g., `#general`) | No | - |
+| `TIMEOUT` | Timeout for the status-retry check | No | 5m |
 
 ## Environment Variables
 

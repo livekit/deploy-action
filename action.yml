@@ -32,6 +32,10 @@ inputs:
   SLACK_CHANNEL:
     description: Slack channel to send notifications to (e.g., #general)
     required: false
+  TIMEOUT:
+    description: Timeout for the operation
+    required: false
+    default: "5m"
 
 runs:
   using: composite
@@ -43,6 +47,7 @@ runs:
           -v /tmp/shared:/tmp/shared \
           -e INPUT_OPERATION="${{ inputs.OPERATION }}" \
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
+          -e INPUT_TIMEOUT="${{ inputs.TIMEOUT }}" \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
@@ -52,4 +57,4 @@ runs:
           -e GITHUB_RUN_ID="${{ github.run_id }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v116
+          docker.io/livekit/cloud-agents-github-plugin:v2
