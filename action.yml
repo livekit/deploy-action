@@ -32,7 +32,7 @@ inputs:
   SLACK_CHANNEL:
     description: Slack channel to send notifications to (e.g., #general)
     required: false
-  INPUT_TIMEOUT:
+  TIMEOUT:
     description: Timeout for the operation
     required: false
     default: "5m"
@@ -47,6 +47,7 @@ runs:
           -v /tmp/shared:/tmp/shared \
           -e INPUT_OPERATION="${{ inputs.OPERATION }}" \
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
+          -e INPUT_TIMEOUT="${{ inputs.TIMEOUT }}" \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
