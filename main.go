@@ -151,6 +151,7 @@ func main() {
 			os.Exit(1)
 		}
 	case "status-retry":
+		log.Debugw("Starting agent status retry", "timeout", timeoutDuration)
 		err := agentStatusRetry(client, workingDir, timeoutDuration)
 		if err != nil {
 			log.Errorw("Failed to get agent status", err)
@@ -186,15 +187,20 @@ func sendSlackNotification(message string) {
 }
 
 func agentStatusRetry(client *lksdk.AgentClient, workingDir string, timeoutDuration time.Duration) error {
-	for i := 0; i < int(timeoutDuration.Seconds()); i++ {
+	startTime := time.Now()
+	for {
 		err := agentStatus(client, workingDir)
 		if err == nil {
 			return nil
 		}
+
+		if time.Since(startTime) >= timeoutDuration {
+			return fmt.Errorf("timeout reached after %v", timeoutDuration)
+		}
+
+		log.Infow("Failed to get running agent", "error", err)
 		time.Sleep(5 * time.Second)
 	}
-
-	return fmt.Errorf("agent status timed out")
 }
 
 func agentStatus(client *lksdk.AgentClient, workingDir string) error {
@@ -206,6 +212,8 @@ func agentStatus(client *lksdk.AgentClient, workingDir string) error {
 	if !exists {
 		return fmt.Errorf("livekit.toml not found")
 	}
+
+	log.Infow("Getting agent status", "agent", lkConfig.Agent.ID)
 
 	res, err := client.ListAgents(context.Background(), &livekit.ListAgentsRequest{
 		AgentId: lkConfig.Agent.ID,
@@ -222,7 +230,7 @@ func agentStatus(client *lksdk.AgentClient, workingDir string) error {
 		for _, regionalAgent := range agent.AgentDeployments {
 			if regionalAgent.Status != "Running" {
 				sendSlackNotification(fmt.Sprintf("Agent %s is not running", lkConfig.Agent.ID))
-				return fmt.Errorf("agent not running")
+				return fmt.Errorf("agent id %s is not running %s", lkConfig.Agent.ID, regionalAgent.Status)
 			}
 		}
 	}
