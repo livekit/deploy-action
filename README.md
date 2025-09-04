@@ -46,7 +46,7 @@ jobs:
       
       - name: Create LiveKit Cloud Agent
         id: livekit
-        uses: livekit/cloud-agents-github-plugin@main
+        uses: livekit/deploy-action@main
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -75,7 +75,7 @@ jobs:
         with:
           ref: cloud-agent-${{ github.run_id }}
       - name: Status Check # block until the agent is in the 'Running' state
-        uses: livekit/cloud-agents-github-plugin@dan/agent-status
+        uses: livekit/deploy-action@main
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy LiveKit Cloud Agent
-        uses: livekit/cloud-agents-github-plugin@main
+        uses: livekit/deploy-action@main
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -133,7 +133,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy LiveKit Cloud Agent
-        uses: livekit/cloud-agents-github-plugin@main
+        uses: livekit/deploy-action@main
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -163,7 +163,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Check Agent Status
-        uses: livekit/cloud-agents-github-plugin@main
+        uses: livekit/deploy-action@main
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -177,7 +177,7 @@ jobs:
 ### Check Agent Status with Retry until timeout or status == Running
 ```yaml
       - name: Status Check
-        uses: livekit/cloud-agents-github-plugin@dan/agent-status
+        uses: livekit/deploy-action@main
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
