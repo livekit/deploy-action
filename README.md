@@ -213,7 +213,7 @@ These can be set either as direct environment variables or as secrets with `SECR
 Pass any number of secrets to your agent by setting the `SECRET_LIST` var with a comma separated list in your workflow:
 
 ```yaml
-  OPENAI_API_KEY={{key}},AUTH_TOKEN={{token}}
+  OPENAI_API_KEY=${{key}},AUTH_TOKEN=${{token}}
   # Add as many secrets as needed...
 ```
 
