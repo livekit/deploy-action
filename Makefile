@@ -1,5 +1,5 @@
 DOCKER_REPO=docker.io/livekit/cloud-agents-github-plugin
-VERSION=v1
+VERSION=$(shell grep 'Version =' version.go | awk '{print $$3}' | tr -d '"')
 
 all: build publish clean
 
