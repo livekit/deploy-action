@@ -79,7 +79,7 @@ func main() {
 
 			secretParts := strings.SplitN(strings.TrimPrefix(env, "SECRET_"), "=", 2)
 			secretName := secretParts[0]
-			secretValue := secretParts[1]
+			secretValue := strings.TrimSpace(secretParts[1])
 
 			log.Infow("Loading secret", "secret", secretName)
 			if secretName == "LIVEKIT_URL" || secretName == "LIVEKIT_API_KEY" || secretName == "LIVEKIT_API_SECRET" {
@@ -101,9 +101,9 @@ func main() {
 
 	if lkUrl == "" || lkApiKey == "" || lkApiSecret == "" {
 		// try to load directly from the env first instead of the SECRET_ prefix
-		lkUrl = os.Getenv("LIVEKIT_URL")
-		lkApiKey = os.Getenv("LIVEKIT_API_KEY")
-		lkApiSecret = os.Getenv("LIVEKIT_API_SECRET")
+		lkUrl = strings.TrimSpace(os.Getenv("LIVEKIT_URL"))
+		lkApiKey = strings.TrimSpace(os.Getenv("LIVEKIT_API_KEY"))
+		lkApiSecret = strings.TrimSpace(os.Getenv("LIVEKIT_API_SECRET"))
 
 		if lkUrl == "" || lkApiKey == "" || lkApiSecret == "" {
 			log.Errorw("LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET must be set", nil)
@@ -121,8 +121,8 @@ func main() {
 				os.Exit(1)
 			}
 
-			secretName := secretParts[0]
-			secretValue := secretParts[1]
+			secretName := strings.TrimSpace(secretParts[0])
+			secretValue := strings.TrimSpace(secretParts[1])
 			log.Infow("Loading secret from SECRET_LIST", "secret", secretName)
 			secrets = append(secrets, &livekit.AgentSecret{
 				Name:  secretName,
