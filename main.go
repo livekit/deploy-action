@@ -79,17 +79,17 @@ func main() {
 
 			secretParts := strings.SplitN(strings.TrimPrefix(env, "SECRET_"), "=", 2)
 			secretName := secretParts[0]
-			secretValue := secretParts[1]
+			secretValue := strings.TrimSpace(secretParts[1])
 
 			log.Infow("Loading secret", "secret", secretName)
 			if secretName == "LIVEKIT_URL" || secretName == "LIVEKIT_API_KEY" || secretName == "LIVEKIT_API_SECRET" {
 				switch secretName {
 				case "LIVEKIT_URL":
-					lkUrl = strings.TrimSpace(secretValue)
+					lkUrl = secretValue
 				case "LIVEKIT_API_KEY":
-					lkApiKey = strings.TrimSpace(secretValue)
+					lkApiKey = secretValue
 				case "LIVEKIT_API_SECRET":
-					lkApiSecret = strings.TrimSpace(secretValue)
+					lkApiSecret = secretValue
 				}
 			}
 			secrets = append(secrets, &livekit.AgentSecret{
