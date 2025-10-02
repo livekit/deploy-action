@@ -71,6 +71,7 @@ func Build(ctx context.Context, id string, projectConfig *ProjectConfig) error {
 		return err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("X-LIVEKIT-DEPLOY-ACTION-VERSION", Version)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
