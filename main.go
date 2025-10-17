@@ -266,7 +266,7 @@ func deployAgent(client *agentfs.Client, secrets []*livekit.AgentSecret, working
 	if err := client.DeployAgent(
 		context.Background(),
 		lkConfig.Agent.ID,
-		workingDir,
+		os.DirFS(workingDir),
 		secrets,
 		[]string{LiveKitTOMLFile},
 	); err != nil {
@@ -286,7 +286,7 @@ func createAgent(client *agentfs.Client, subdomain string, secrets []*livekit.Ag
 	regions := []string{}
 	resp, err := client.CreateAgent(
 		context.Background(),
-		workingDir,
+		os.DirFS(workingDir),
 		secrets,
 		regions,
 		[]string{LiveKitTOMLFile},
