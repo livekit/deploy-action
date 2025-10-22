@@ -46,7 +46,7 @@ jobs:
       
       - name: Create LiveKit Cloud Agent
         id: livekit
-        uses: livekit/deploy-action@main
+        uses: livekit/deploy-action@v2.12.1
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -75,7 +75,7 @@ jobs:
         with:
           ref: cloud-agent-${{ github.run_id }}
       - name: Status Check # block until the agent is in the 'Running' state
-        uses: livekit/deploy-action@main
+        uses: livekit/deploy-action@v2.12.1
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy LiveKit Cloud Agent
-        uses: livekit/deploy-action@main
+        uses: livekit/deploy-action@v2.12.1
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -133,7 +133,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy LiveKit Cloud Agent
-        uses: livekit/deploy-action@main
+        uses: livekit/deploy-action@v2.12.1
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -163,7 +163,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Check Agent Status
-        uses: livekit/deploy-action@main
+        uses: livekit/deploy-action@v2.12.1
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -177,7 +177,7 @@ jobs:
 ### Check Agent Status with Retry until timeout or status == Running
 ```yaml
       - name: Status Check
-        uses: livekit/deploy-action@main
+        uses: livekit/deploy-action@v2.12.1
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -246,3 +246,13 @@ And the checkout action should include the token:
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## Release
+
+This project shares the same **major** and **minor** version as server-sdk-go for compatibility. The deploy-action must always import server-sdk-go with matching major and minor versions.
+
+| valid | deploy-action | server-sdk-go | server constraint | explanation
+✅	| 2.12.2 | 2.12.2 | >= 2.12.0 | minor/major version match
+✅	| 2.12.5 | 2.12.2 | >= 2.12.0 | patch version ahead
+❌	| 2.13.2 | 2.12.2 | >= 2.12.0 | minor version ahead
+❌	| 3.12.2 | 2.12.2 | >= 2.12.0 | major version ahead
