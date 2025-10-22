@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/livekit/livekit-cli/v2/pkg/agentfs"
 	"github.com/livekit/protocol/livekit"
 	"github.com/livekit/protocol/logger"
+	"github.com/livekit/server-sdk-go/v2/pkg/cloudagents"
 
 	"github.com/slack-go/slack"
 )
@@ -131,9 +131,9 @@ func main() {
 		}
 	}
 
-	client, err := agentfs.New(
-		agentfs.WithProject(lkUrl, lkApiKey, lkApiSecret),
-		agentfs.WithLogger(log),
+	client, err := cloudagents.New(
+		cloudagents.WithProject(lkUrl, lkApiKey, lkApiSecret),
+		cloudagents.WithLogger(log),
 	)
 	if err != nil {
 		log.Errorw("Failed to create agent client", err)
@@ -198,7 +198,7 @@ func sendSlackNotification(message string) {
 	}
 }
 
-func agentStatusRetry(client *agentfs.Client, workingDir string, timeoutDuration time.Duration) error {
+func agentStatusRetry(client *cloudagents.Client, workingDir string, timeoutDuration time.Duration) error {
 	startTime := time.Now()
 	for {
 		err := agentStatus(client, workingDir)
@@ -215,7 +215,7 @@ func agentStatusRetry(client *agentfs.Client, workingDir string, timeoutDuration
 	}
 }
 
-func agentStatus(client *agentfs.Client, workingDir string) error {
+func agentStatus(client *cloudagents.Client, workingDir string) error {
 	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
 	if err != nil {
 		return err
@@ -251,7 +251,7 @@ func agentStatus(client *agentfs.Client, workingDir string) error {
 	return nil
 }
 
-func deployAgent(client *agentfs.Client, secrets []*livekit.AgentSecret, workingDir string) {
+func deployAgent(client *cloudagents.Client, secrets []*livekit.AgentSecret, workingDir string) {
 	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
 	if err != nil {
 		log.Errorw("Failed to load livekit.toml", err)
@@ -266,7 +266,7 @@ func deployAgent(client *agentfs.Client, secrets []*livekit.AgentSecret, working
 	if err := client.DeployAgent(
 		context.Background(),
 		lkConfig.Agent.ID,
-		workingDir,
+		os.DirFS(workingDir),
 		secrets,
 		[]string{LiveKitTOMLFile},
 	); err != nil {
@@ -277,7 +277,7 @@ func deployAgent(client *agentfs.Client, secrets []*livekit.AgentSecret, working
 	log.Infow("Agent deployed", "agent", lkConfig.Agent.ID)
 }
 
-func createAgent(client *agentfs.Client, subdomain string, secrets []*livekit.AgentSecret, workingDir string) {
+func createAgent(client *cloudagents.Client, subdomain string, secrets []*livekit.AgentSecret, workingDir string) {
 	if _, err := os.Stat(fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile)); err == nil {
 		log.Infow("livekit.toml already exists", "path", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
 		os.Exit(0)
@@ -286,7 +286,7 @@ func createAgent(client *agentfs.Client, subdomain string, secrets []*livekit.Ag
 	regions := []string{}
 	resp, err := client.CreateAgent(
 		context.Background(),
-		workingDir,
+		os.DirFS(workingDir),
 		secrets,
 		regions,
 		[]string{LiveKitTOMLFile},
@@ -305,7 +305,7 @@ func createAgent(client *agentfs.Client, subdomain string, secrets []*livekit.Ag
 	log.Infow("Agent created", "agent", resp.AgentId)
 }
 
-func deleteAgent(client *agentfs.Client, workingDir string) {
+func deleteAgent(client *cloudagents.Client, workingDir string) {
 	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
 	if err != nil {
 		log.Errorw("Failed to load livekit.toml", err)
@@ -330,7 +330,7 @@ func deleteAgent(client *agentfs.Client, workingDir string) {
 	log.Infow("Agent deleted", "agent", lkConfig.Agent.ID)
 }
 
-func deleteAgentMulti(client *agentfs.Client, agentIds []string) {
+func deleteAgentMulti(client *cloudagents.Client, agentIds []string) {
 	for _, agentId := range agentIds {
 		req := &livekit.DeleteAgentRequest{
 			AgentId: agentId,
