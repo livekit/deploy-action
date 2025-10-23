@@ -47,6 +47,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	region := os.Getenv("INPUT_REGION")
+	if region == "" {
+		log.Infow("REGION is not set, defaulting to nearest region.")
+	}
+
 	workingDir := os.Getenv("INPUT_WORKING_DIRECTORY")
 	if workingDir == "" {
 		workingDir = "."
@@ -149,7 +154,7 @@ func main() {
 
 	switch operation {
 	case "create":
-		createAgent(client, subdomain, secrets, workingDir)
+		createAgent(client, subdomain, secrets, workingDir, region)
 	case "deploy":
 		deployAgent(client, secrets, workingDir)
 	case "status":
@@ -277,13 +282,16 @@ func deployAgent(client *cloudagents.Client, secrets []*livekit.AgentSecret, wor
 	log.Infow("Agent deployed", "agent", lkConfig.Agent.ID)
 }
 
-func createAgent(client *cloudagents.Client, subdomain string, secrets []*livekit.AgentSecret, workingDir string) {
+func createAgent(client *cloudagents.Client, subdomain string, secrets []*livekit.AgentSecret, workingDir string, region string) {
 	if _, err := os.Stat(fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile)); err == nil {
 		log.Infow("livekit.toml already exists", "path", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
 		os.Exit(0)
 	}
 	lkConfig := NewLiveKitTOML(subdomain).WithDefaultAgent()
-	regions := []string{}
+	var regions []string
+	if region != "" {
+		regions = []string{region}
+	}
 	resp, err := client.CreateAgent(
 		context.Background(),
 		os.DirFS(workingDir),
