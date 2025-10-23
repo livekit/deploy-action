@@ -193,6 +193,7 @@ jobs:
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `OPERATION` | Operation to perform (`create`, `deploy`, `status`, `status-retry`) | Yes | `status` |
+| `REGION` | Region to deploy the agent to. If empty defaults to the nearest LiveKit Cloud region. | No | `""` |
 | `WORKING_DIRECTORY` | Directory containing the agent configuration | No | `.` |
 | `SLACK_TOKEN` | Slack Bot Token for sending notifications | No | - |
 | `SLACK_CHANNEL` | Slack channel to send notifications to (e.g., `#general`) | No | - |
