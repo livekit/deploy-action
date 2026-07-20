@@ -47,6 +47,7 @@ runs:
     - name: Run LiveKit Cloud Agent Operation
       shell: bash
       run: |
+        VERSION="$(tr -d '[:space:]' < "${{ github.action_path }}/VERSION")"
         docker run --rm \
           -v /tmp/shared:/tmp/shared \
           -e INPUT_OPERATION="${{ inputs.OPERATION }}" \
@@ -62,4 +63,4 @@ runs:
           -e GITHUB_RUN_ID="${{ github.run_id }}" \
           -v "${{ github.workspace }}:/workspace" \
           -w "/workspace" \
-          docker.io/livekit/cloud-agents-github-plugin:v2.12.1
+          "docker.io/livekit/cloud-agents-github-plugin:${VERSION}"
