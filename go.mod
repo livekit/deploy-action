@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/livekit/protocol v1.42.2-0.20251016024155-8cf58ff15ac6
 	github.com/livekit/server-sdk-go/v2 v2.12.1
-	github.com/slack-go/slack v0.17.3
+	github.com/slack-go/slack v0.23.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
