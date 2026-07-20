@@ -78,7 +78,7 @@ func main() {
 	for _, env := range os.Environ() {
 		if strings.HasPrefix(env, "SECRET_") {
 			// ignore the SECRET_LIST env var
-			if env == "SECRET_LIST" {
+			if strings.HasPrefix(env, "SECRET_LIST=") {
 				continue
 			}
 
