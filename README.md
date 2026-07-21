@@ -46,7 +46,7 @@ jobs:
       
       - name: Create LiveKit Cloud Agent
         id: livekit
-        uses: livekit/deploy-action@v2.12.1
+        uses: livekit/deploy-action@v2
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -75,7 +75,7 @@ jobs:
         with:
           ref: cloud-agent-${{ github.run_id }}
       - name: Status Check # block until the agent is in the 'Running' state
-        uses: livekit/deploy-action@v2.12.1
+        uses: livekit/deploy-action@v2
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy LiveKit Cloud Agent
-        uses: livekit/deploy-action@v2.12.1
+        uses: livekit/deploy-action@v2
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -133,7 +133,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy LiveKit Cloud Agent
-        uses: livekit/deploy-action@v2.12.1
+        uses: livekit/deploy-action@v2
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -163,7 +163,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Check Agent Status
-        uses: livekit/deploy-action@v2.12.1
+        uses: livekit/deploy-action@v2
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -177,7 +177,7 @@ jobs:
 ### Check Agent Status with Retry until timeout or status == Running
 ```yaml
       - name: Status Check
-        uses: livekit/deploy-action@v2.12.1
+        uses: livekit/deploy-action@v2
         env:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -249,6 +249,8 @@ And the checkout action should include the token:
 ```
 
 ## Release
+
+The release version lives in `VERSION`. The Makefile and action image tag both read from that file.
 
 This project shares the same **major** and **minor** version as server-sdk-go for compatibility. The deploy-action must always import server-sdk-go with matching major and minor versions.
 

@@ -1,5 +1,5 @@
 DOCKER_REPO=docker.io/livekit/cloud-agents-github-plugin
-VERSION=v2.12.1
+VERSION := $(shell tr -d '[:space:]' < VERSION)
 
 all: build publish clean
 
