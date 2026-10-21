@@ -109,6 +109,8 @@ func configFileName(configInput string) (string, error) {
 // in LIVEKIT_URL, so a toml written for one project can't deploy into another.
 // It returns a non-empty warning instead when either side can't be determined.
 func checkSubdomain(tomlSubdomain, lkURL string) (warning string, err error) {
+	// older versions of create wrote e.g. "ws://my-project" for ws:// and http:// URLs
+	tomlSubdomain = stripScheme(tomlSubdomain)
 	urlSubdomain := ExtractSubdomain(lkURL)
 	if tomlSubdomain == "" || urlSubdomain == "" {
 		return "could not compare the toml project subdomain with LIVEKIT_URL, skipping the check", nil
@@ -169,6 +171,16 @@ func buildExcludes(configFile string) []string {
 		excludes = append(excludes, filepath.ToSlash(configFile))
 	}
 	return excludes
+}
+
+// stripScheme removes a leading http(s):// or ws(s):// from a subdomain.
+func stripScheme(s string) string {
+	for _, scheme := range []string{"https://", "http://", "wss://", "ws://"} {
+		if strings.HasPrefix(s, scheme) {
+			return strings.TrimPrefix(s, scheme)
+		}
+	}
+	return s
 }
 
 func isProductionDeployment(name string) bool {

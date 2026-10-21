@@ -2,7 +2,7 @@
 
 A GitHub Action for creating, deploying, and getting the status of LiveKit Cloud Agents.
 
-> **Versions:** pin the action to a release tag. The examples below use `v2.12.2`, the latest release. The multi-environment inputs (`AGENT_ID`, `CONFIG`, `DEPLOYMENT`, `ATTRIBUTES`) and the `promote` operation need `v2.19.0` or later.
+> **Versions:** pin the action to a release tag. The examples below use `v2.12.2`, the latest release. The multi-environment inputs (`AGENT_ID`, `CONFIG`, `DEPLOYMENT`, `ATTRIBUTES`) and the `promote` operation need `v2.19.0` or later. Older versions ignore inputs they don't know, with only an "Unexpected input" warning. For example, a `deploy` with `DEPLOYMENT: staging` on an older version deploys to production.
 
 ## Usage
 
@@ -200,7 +200,7 @@ The action supports three ways to deploy one agent codebase to several environme
 
 `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` must be set in the job or step `env`, not in `with:`. Read the key and secret from `secrets`. The URL isn't sensitive, so it can be a `vars` variable.
 
-After a `deploy`, run `status-retry` if later steps depend on a healthy rollout. `deploy` returns once the build finishes, not when the new version is serving.
+After a `deploy`, run `status-retry` if later steps depend on a healthy rollout. It waits until the targeted deployment reports a healthy status. It doesn't check which version is serving, so right after a deploy it can pass while the previous version is still running.
 
 ### A project per environment
 
@@ -230,6 +230,12 @@ jobs:
       LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check AGENT_ID is set
+        if: vars.AGENT_ID == ''
+        run: |
+          echo "::error::Set the AGENT_ID variable in this environment"
+          exit 1
 
       - name: Deploy
         uses: livekit/deploy-action@v2.19.0
@@ -261,6 +267,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check AGENT_ID is set
+        if: vars.AGENT_ID == ''
+        run: |
+          echo "::error::Set the AGENT_ID variable in this environment"
+          exit 1
+
       - name: Deploy
         uses: livekit/deploy-action@v2.19.0
         env:
@@ -278,13 +290,13 @@ jobs:
           TIMEOUT: 10m
 ```
 
-`deploy-production` waits for `deploy-staging`, so production is never deployed if staging fails.
+`deploy-production` waits for `deploy-staging`, so production is never deployed if staging fails. The guard step matters: if `AGENT_ID` is empty, the action falls back to `livekit.toml`, which may point at another environment's agent.
 
 ### An agent per environment in one project
 
 All environments share one set of credentials and differ only in the agent ID. There are two ways to choose the agent.
 
-**`AGENT_ID` from an environment variable.** Use the [project-per-environment workflow](#a-project-per-environment), with `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` set once at the repository level instead of in each environment.
+**`AGENT_ID` from an environment variable.** Use the [project-per-environment workflow](#a-project-per-environment), with `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` set once at the repository level instead of in each environment. Keep the guard step. Every agent is in the same project, so the subdomain check can't catch a fallback to the wrong `livekit.toml`.
 
 **A toml per environment with `CONFIG`.** Commit one toml per environment next to the agent, for example `livekit.staging.toml` and `livekit.production.toml`. Each holds the same `[project] subdomain` and a different `[agent] id`. `CONFIG` is relative to `WORKING_DIRECTORY`. `WORKING_DIRECTORY` stays the build context.
 
@@ -363,6 +375,8 @@ A [non-production deployment](https://docs.livekit.io/deploy/agents/deployments/
 
 In this workflow, the `production` GitHub environment has required reviewers, so `promote` waits for approval. Both jobs talk to the same LiveKit project, so use repository secrets or the same values in both environments.
 
+`promote` promotes whatever staging is running when it executes, not a specific commit. The workflow-level `concurrency` group keeps a newer push from replacing staging while a promotion waits for approval. Newer runs queue until the pending one is approved or rejected, and only the newest queued run is kept.
+
 ```yaml
 name: Stage and promote agent
 on:
@@ -437,7 +451,7 @@ For `deploy`, `promote`, `status`, `status-retry` and `delete`, the action logs 
 2. Otherwise the toml at `CONFIG`, relative to `WORKING_DIRECTORY`.
 3. Otherwise `livekit.toml` in `WORKING_DIRECTORY`.
 
-When the ID comes from a toml, the toml's `[project] subdomain` must match the subdomain of `LIVEKIT_URL`, or the action fails before it changes anything. Files named `livekit*.toml`, and the `CONFIG` file, are left out of the uploaded build context.
+When the ID comes from a toml, the toml's `[project] subdomain` must match the subdomain of `LIVEKIT_URL`, or the action fails before it changes anything. Files named `livekit*.toml`, and the toml in use, are left out of the uploaded build context.
 
 ## Inputs
 

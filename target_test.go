@@ -117,6 +117,8 @@ func TestCheckSubdomain(t *testing.T) {
 		{name: "match wss", toml: "my-project", url: "wss://my-project.livekit.cloud"},
 		{name: "match https", toml: "my-project", url: "https://my-project.livekit.cloud"},
 		{name: "match ignores case", toml: "My-Project", url: "wss://my-project.livekit.cloud"},
+		{name: "toml with scheme from older create", toml: "ws://my-project", url: "ws://my-project.livekit.cloud"},
+		{name: "toml with http scheme", toml: "http://my-project", url: "https://my-project.livekit.cloud"},
 		{name: "mismatch", toml: "prod-project", url: "wss://stage-project.livekit.cloud", wantErr: true},
 		{name: "empty toml subdomain", toml: "", url: "wss://my-project.livekit.cloud", wantWarn: true},
 		{name: "unparseable url", toml: "my-project", url: "my-project.livekit.cloud", wantWarn: true},
@@ -179,6 +181,14 @@ func TestParseAttributes(t *testing.T) {
 				t.Fatalf("got %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestNewLiveKitTOMLStripsScheme(t *testing.T) {
+	for _, url := range []string{"wss://my-project", "ws://my-project", "https://my-project", "http://my-project", "my-project"} {
+		if got := NewLiveKitTOML(url).Project.Subdomain; got != "my-project" {
+			t.Errorf("NewLiveKitTOML(%q) subdomain = %q, want my-project", url, got)
+		}
 	}
 }
 

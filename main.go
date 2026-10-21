@@ -355,6 +355,11 @@ func createAgent(client *cloudagents.Client, subdomain string, secrets []*liveki
 		log.Infow(fmt.Sprintf("%s already exists", configFile), "path", filepath.Join(workingDir, configFile))
 		os.Exit(0)
 	}
+	// make sure the toml can be written before registering an agent
+	if err := os.MkdirAll(filepath.Dir(filepath.Join(workingDir, configFile)), 0o755); err != nil {
+		log.Errorw(fmt.Sprintf("Failed to create the directory for %s", configFile), err)
+		os.Exit(1)
+	}
 	lkConfig := NewLiveKitTOML(subdomain).WithDefaultAgent()
 	var regions []string
 	if region != "" {

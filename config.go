@@ -242,8 +242,7 @@ type LiveKitTOMLAgentConfig struct {
 }
 
 func NewLiveKitTOML(forSubdomain string) *LiveKitTOML {
-	forSubdomain = strings.TrimPrefix(forSubdomain, "https://")
-	forSubdomain = strings.TrimPrefix(forSubdomain, "wss://")
+	forSubdomain = stripScheme(forSubdomain)
 
 	return &LiveKitTOML{
 		Project: &LiveKitTOMLProjectConfig{
