@@ -242,8 +242,7 @@ type LiveKitTOMLAgentConfig struct {
 }
 
 func NewLiveKitTOML(forSubdomain string) *LiveKitTOML {
-	forSubdomain = strings.TrimPrefix(forSubdomain, "https://")
-	forSubdomain = strings.TrimPrefix(forSubdomain, "wss://")
+	forSubdomain = stripScheme(forSubdomain)
 
 	return &LiveKitTOML{
 		Project: &LiveKitTOMLProjectConfig{
@@ -287,6 +286,9 @@ func LoadTOMLFile(dir string, tomlFileName string) (*LiveKitTOML, bool, error) {
 		configExists = true
 
 		_, err = toml.DecodeFile(tomlFile, &config)
+		if err != nil {
+			return nil, configExists, err
+		}
 		if config.Project == nil {
 			// Attempt to decode old agent config
 			var oldConfig AgentTOML

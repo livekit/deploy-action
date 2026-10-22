@@ -19,7 +19,7 @@ branding:
   color: purple
 inputs:
   OPERATION:
-    description: Operation to perform (create, deploy, status)
+    description: Operation to perform (create, deploy, promote, status, status-retry, delete, delete-multi)
     required: true
     default: status
   WORKING_DIRECTORY:
@@ -37,7 +37,27 @@ inputs:
     required: false
     default: "5m"
   REGION:
-    description: Region to deploy to. If not specified, the nearest LiveKit Cloudregion will be used.
+    description: Region to create the agent in (create only). If not specified, the nearest LiveKit Cloud region will be used.
+    required: false
+    default: ""
+  AGENT_ID:
+    description: Agent ID to target. Takes precedence over CONFIG and livekit.toml; no toml is needed.
+    required: false
+    default: ""
+  CONFIG:
+    description: Path to the agent toml, relative to WORKING_DIRECTORY (e.g. livekit.stage.toml). Defaults to livekit.toml.
+    required: false
+    default: ""
+  DEPLOYMENT:
+    description: Non-production deployment to target (e.g. staging). Empty targets production. Required for promote.
+    required: false
+    default: ""
+  ATTRIBUTES:
+    description: JSON object of string attributes to record on the new version (create, deploy).
+    required: false
+    default: ""
+  AGENT_IDS:
+    description: Comma-separated agent IDs to delete (delete-multi only).
     required: false
     default: ""
 
@@ -46,6 +66,12 @@ runs:
   steps:
     - name: Run LiveKit Cloud Agent Operation
       shell: bash
+      env:
+        INPUT_AGENT_ID: ${{ inputs.AGENT_ID }}
+        INPUT_CONFIG: ${{ inputs.CONFIG }}
+        INPUT_DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+        INPUT_ATTRIBUTES: ${{ inputs.ATTRIBUTES }}
+        INPUT_AGENT_IDS: ${{ inputs.AGENT_IDS }}
       run: |
         VERSION="$(tr -d '[:space:]' < "${{ github.action_path }}/VERSION")"
         docker run --rm \
@@ -54,6 +80,11 @@ runs:
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
           -e INPUT_TIMEOUT="${{ inputs.TIMEOUT }}" \
           -e INPUT_REGION="${{ inputs.REGION }}" \
+          -e INPUT_AGENT_ID \
+          -e INPUT_CONFIG \
+          -e INPUT_DEPLOYMENT \
+          -e INPUT_ATTRIBUTES \
+          -e INPUT_AGENT_IDS \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \

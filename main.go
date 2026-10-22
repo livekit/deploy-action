@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -58,9 +59,27 @@ func main() {
 	}
 	log.Infow("Running in", "path", workingDir)
 
-	agentIds := strings.Split(os.Getenv("INPUT_AGENT_IDS"), ",")
+	agentIds := parseAgentIDs(os.Getenv("INPUT_AGENT_IDS"))
 	if len(agentIds) > 0 {
 		log.Infow("Using agent IDs from INPUT_AGENT_IDS", "agentIds", agentIds)
+	}
+
+	agentIDInput := strings.TrimSpace(os.Getenv("INPUT_AGENT_ID"))
+	configInput := strings.TrimSpace(os.Getenv("INPUT_CONFIG"))
+
+	deployment := strings.TrimSpace(os.Getenv("INPUT_DEPLOYMENT"))
+	if err := validateDeploymentName(deployment); err != nil {
+		log.Errorw("Invalid DEPLOYMENT", err)
+		os.Exit(1)
+	}
+	if deployment != "" {
+		log.Infow("Targeting deployment", "deployment", deployment)
+	}
+
+	attributes, err := parseAttributes(os.Getenv("INPUT_ATTRIBUTES"))
+	if err != nil {
+		log.Errorw("Invalid ATTRIBUTES", err)
+		os.Exit(1)
 	}
 
 	timeout := os.Getenv("INPUT_TIMEOUT")
@@ -152,28 +171,70 @@ func main() {
 		log.Infow("No secrets loaded")
 	}
 
+	// resolve the agent an operation acts on: AGENT_ID > CONFIG > livekit.toml
+	resolveTarget := func() *agentTarget {
+		target, err := resolveAgentTarget(agentIDInput, configInput, workingDir, lkUrl)
+		if err != nil {
+			log.Errorw("Failed to resolve agent", err)
+			os.Exit(1)
+		}
+		log.Infow("Using agent", "agent", target.AgentID, "source", target.Source, "config", target.ConfigFile)
+		return target
+	}
+
 	switch operation {
 	case "create":
-		createAgent(client, subdomain, secrets, workingDir, region)
+		if agentIDInput != "" {
+			log.Errorw("AGENT_ID cannot be used with create; create registers a new agent", nil)
+			os.Exit(1)
+		}
+		if deployment != "" {
+			log.Errorw("DEPLOYMENT cannot be used with create; create the agent first, then deploy with DEPLOYMENT", nil)
+			os.Exit(1)
+		}
+		configFile, err := configFileName(configInput)
+		if err != nil {
+			log.Errorw("Invalid CONFIG", err)
+			os.Exit(1)
+		}
+		createAgent(client, subdomain, secrets, workingDir, configFile, region, attributes)
 	case "deploy":
-		deployAgent(client, secrets, workingDir)
+		if deployment != "" && len(secrets) > 0 {
+			log.Warnw("Secrets are shared by every deployment of an agent; updating them for this deployment also changes what production reads", nil, "deployment", deployment)
+		}
+		deployAgent(client, secrets, workingDir, resolveTarget(), deployment, attributes)
+	case "promote":
+		if deployment == "" {
+			log.Errorw("promote requires DEPLOYMENT, the non-production deployment to promote to production", nil)
+			os.Exit(1)
+		}
+		promoteAgent(client, resolveTarget(), deployment)
 	case "status":
-		err := agentStatus(client, workingDir)
+		err := agentStatus(client, resolveTarget(), deployment)
 		if err != nil {
 			log.Errorw("Failed to get agent status", err)
 			os.Exit(1)
 		}
 	case "status-retry":
+		target := resolveTarget()
 		log.Debugw("Starting agent status retry", "timeout", timeoutDuration)
-		err := agentStatusRetry(client, workingDir, timeoutDuration)
+		err := agentStatusRetry(client, target, deployment, timeoutDuration)
 		if err != nil {
 			log.Errorw("Failed to get agent status", err)
 			os.Exit(1)
 		}
 		log.Infow("Agent status check completed", "status", "running")
 	case "delete":
-		deleteAgent(client, workingDir)
+		deleteAgent(client, resolveTarget(), deployment)
 	case "delete-multi":
+		if deployment != "" {
+			log.Errorw("DEPLOYMENT cannot be used with delete-multi", nil)
+			os.Exit(1)
+		}
+		if len(agentIds) == 0 {
+			log.Errorw("delete-multi requires AGENT_IDS", nil)
+			os.Exit(1)
+		}
 		deleteAgentMulti(client, agentIds)
 	default:
 		log.Errorw("Invalid operation", nil, "operation", operation)
@@ -203,10 +264,10 @@ func sendSlackNotification(message string) {
 	}
 }
 
-func agentStatusRetry(client *cloudagents.Client, workingDir string, timeoutDuration time.Duration) error {
+func agentStatusRetry(client *cloudagents.Client, target *agentTarget, deployment string, timeoutDuration time.Duration) error {
 	startTime := time.Now()
 	for {
-		err := agentStatus(client, workingDir)
+		err := agentStatus(client, target, deployment)
 		if err == nil {
 			return nil
 		}
@@ -220,20 +281,11 @@ func agentStatusRetry(client *cloudagents.Client, workingDir string, timeoutDura
 	}
 }
 
-func agentStatus(client *cloudagents.Client, workingDir string) error {
-	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return fmt.Errorf("livekit.toml not found")
-	}
-
-	log.Infow("Getting agent status", "agent", lkConfig.Agent.ID)
+func agentStatus(client *cloudagents.Client, target *agentTarget, deployment string) error {
+	log.Infow("Getting agent status", "agent", target.AgentID, "deployment", deploymentLabel(deployment))
 
 	res, err := client.ListAgents(context.Background(), &livekit.ListAgentsRequest{
-		AgentId: lkConfig.Agent.ID,
+		AgentId: target.AgentID,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get agent")
@@ -243,49 +295,70 @@ func agentStatus(client *cloudagents.Client, workingDir string) error {
 		return fmt.Errorf("agent not found")
 	}
 
-	for _, agent := range res.Agents {
-		for _, regionalAgent := range agent.AgentDeployments {
-			if regionalAgent.Status != "Running" {
-				sendSlackNotification(fmt.Sprintf("Agent %s is not running", lkConfig.Agent.ID))
-				return fmt.Errorf("agent id %s is not running %s", lkConfig.Agent.ID, regionalAgent.Status)
-			}
+	regionalAgent, err := evaluateStatus(res.Agents, target.AgentID, deployment)
+	if err != nil {
+		if regionalAgent != nil {
+			sendSlackNotification(fmt.Sprintf("Agent %s is not running", target.AgentID))
 		}
+		return err
 	}
 
-	log.Infow("Agent status", "agent", lkConfig.Agent.ID, "status", res.Agents[0].AgentDeployments[0].Status)
+	log.Infow("Agent status", "agent", target.AgentID, "deployment", deploymentLabel(deployment), "status", regionalAgent.Status)
 	return nil
 }
 
-func deployAgent(client *cloudagents.Client, secrets []*livekit.AgentSecret, workingDir string) {
-	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
+func deployAgent(client *cloudagents.Client, secrets []*livekit.AgentSecret, workingDir string, target *agentTarget, deployment string, attributes map[string]string) {
+	excludes := buildExcludes(target.ConfigFile)
+
+	var err error
+	if deployment == "" {
+		err = client.DeployAgent(
+			context.Background(),
+			target.AgentID,
+			os.DirFS(workingDir),
+			secrets,
+			attributes,
+			excludes,
+			os.Stderr,
+		)
+	} else {
+		err = client.DeployAgentV2(
+			context.Background(),
+			target.AgentID,
+			os.DirFS(workingDir),
+			secrets,
+			attributes,
+			deployment,
+			excludes,
+			os.Stderr,
+		)
+	}
 	if err != nil {
-		log.Errorw("Failed to load livekit.toml", err)
-		os.Exit(1)
-	}
-
-	if !exists {
-		log.Errorw("livekit.toml not found", nil)
-		os.Exit(1)
-	}
-
-	if err := client.DeployAgent(
-		context.Background(),
-		lkConfig.Agent.ID,
-		os.DirFS(workingDir),
-		secrets,
-		[]string{LiveKitTOMLFile},
-	); err != nil {
 		log.Errorw("Failed to deploy agent", err)
 		os.Exit(1)
 	}
 
-	log.Infow("Agent deployed", "agent", lkConfig.Agent.ID)
+	log.Infow("Agent deployed", "agent", target.AgentID, "deployment", deploymentLabel(deployment))
 }
 
-func createAgent(client *cloudagents.Client, subdomain string, secrets []*livekit.AgentSecret, workingDir string, region string) {
-	if _, err := os.Stat(fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile)); err == nil {
-		log.Infow("livekit.toml already exists", "path", fmt.Sprintf("%s/%s", workingDir, LiveKitTOMLFile))
+func promoteAgent(client *cloudagents.Client, target *agentTarget, deployment string) {
+	if err := client.PromoteAgent(context.Background(), target.AgentID, deployment, ""); err != nil {
+		log.Errorw("Failed to promote agent", err)
+		os.Exit(1)
+	}
+
+	log.Infow("Agent promoted to production", "agent", target.AgentID, "from", deployment)
+}
+
+func createAgent(client *cloudagents.Client, subdomain string, secrets []*livekit.AgentSecret, workingDir string, configFile string, region string, attributes map[string]string) {
+	if _, err := os.Stat(filepath.Join(workingDir, configFile)); err == nil {
+		log.Infow(fmt.Sprintf("%s already exists", configFile), "path", filepath.Join(workingDir, configFile))
 		os.Exit(0)
+	}
+	// make sure the toml can be written before registering an agent
+	if err := os.MkdirAll(filepath.Dir(filepath.Join(workingDir, configFile)), 0o755); err != nil {
+		log.Errorw(fmt.Sprintf("Failed to create the directory for %s", configFile), err)
+		os.Exit(1)
 	}
 	lkConfig := NewLiveKitTOML(subdomain).WithDefaultAgent()
 	var regions []string
@@ -297,7 +370,9 @@ func createAgent(client *cloudagents.Client, subdomain string, secrets []*liveki
 		os.DirFS(workingDir),
 		secrets,
 		regions,
-		[]string{LiveKitTOMLFile},
+		attributes,
+		buildExcludes(configFile),
+		os.Stderr,
 	)
 	if err != nil {
 		log.Errorw("Failed to create agent", err)
@@ -305,37 +380,35 @@ func createAgent(client *cloudagents.Client, subdomain string, secrets []*liveki
 	}
 
 	lkConfig.Agent.ID = resp.AgentId
-	if err := lkConfig.SaveTOMLFile(workingDir, LiveKitTOMLFile); err != nil {
-		log.Errorw("Failed to save livekit.toml", err)
+	if err := lkConfig.SaveTOMLFile(workingDir, configFile); err != nil {
+		log.Errorw(fmt.Sprintf("Failed to save %s", configFile), err)
 		os.Exit(1)
 	}
 
 	log.Infow("Agent created", "agent", resp.AgentId)
 }
 
-func deleteAgent(client *cloudagents.Client, workingDir string) {
-	lkConfig, exists, err := LoadTOMLFile(workingDir, LiveKitTOMLFile)
-	if err != nil {
-		log.Errorw("Failed to load livekit.toml", err)
-		os.Exit(1)
-	}
-
-	if !exists {
-		log.Errorw("livekit.toml not found", nil)
-		os.Exit(1)
-	}
-
+func deleteAgent(client *cloudagents.Client, target *agentTarget, deployment string) {
 	req := &livekit.DeleteAgentRequest{
-		AgentId: lkConfig.Agent.ID,
+		AgentId:    target.AgentID,
+		Deployment: deployment,
 	}
 
-	_, err = client.DeleteAgent(context.Background(), req)
+	res, err := client.DeleteAgent(context.Background(), req)
 	if err != nil {
 		log.Errorw("Failed to delete agent", err)
 		os.Exit(1)
 	}
+	if !res.Success {
+		log.Errorw("Failed to delete agent", nil, "message", res.Message)
+		os.Exit(1)
+	}
 
-	log.Infow("Agent deleted", "agent", lkConfig.Agent.ID)
+	if deployment != "" {
+		log.Infow("Agent deployment deleted", "agent", target.AgentID, "deployment", deployment)
+		return
+	}
+	log.Infow("Agent deleted", "agent", target.AgentID)
 }
 
 func deleteAgentMulti(client *cloudagents.Client, agentIds []string) {
@@ -344,9 +417,13 @@ func deleteAgentMulti(client *cloudagents.Client, agentIds []string) {
 			AgentId: agentId,
 		}
 
-		_, err := client.DeleteAgent(context.Background(), req)
+		res, err := client.DeleteAgent(context.Background(), req)
 		if err != nil {
 			log.Errorw("Failed to delete agent", err)
+			os.Exit(1)
+		}
+		if !res.Success {
+			log.Errorw("Failed to delete agent", nil, "agent", agentId, "message", res.Message)
 			os.Exit(1)
 		}
 
