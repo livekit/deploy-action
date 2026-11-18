@@ -188,11 +188,49 @@ jobs:
           TIMEOUT: 5m
 ```
 
+### Deployments
+
+An agent can have non-production deployments (for example `preview` or `dev`) alongside production, the same as `lk agent deploy --deployment`. Set `DEPLOYMENT` to target one:
+
+| Operation | With `DEPLOYMENT` empty / `production` | With `DEPLOYMENT: <name>` |
+|-----------|----------------------------------------|---------------------------|
+| `deploy` | Deploys production | Deploys (or creates) the `<name>` deployment |
+| `status`, `status-retry` | Checks that production is `Running` | Checks that `<name>` is `Running` |
+| `promote` | Error | Promotes the `<name>` image to production |
+| `delete` | Deletes the **entire agent**, including all deployments | Deletes only the `<name>` deployment |
+| `create` | Creates the agent in production | Ignored; agents are always created in production |
+
+```yaml
+      - name: Deploy preview
+        uses: livekit/deploy-action@v2
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.SECRET_LIST }}
+        with:
+          OPERATION: deploy
+          DEPLOYMENT: preview
+          WORKING_DIRECTORY: test-agent
+
+      - name: Promote preview to production
+        uses: livekit/deploy-action@v2
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+        with:
+          OPERATION: promote
+          DEPLOYMENT: preview
+          WORKING_DIRECTORY: test-agent
+```
+
 ## Inputs
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `OPERATION` | Operation to perform (`create`, `deploy`, `status`, `status-retry`) | Yes | `status` |
+| `OPERATION` | Operation to perform (`create`, `deploy`, `promote`, `status`, `status-retry`, `delete`) | Yes | `status` |
+| `DEPLOYMENT` | Agent deployment to target. Empty or `production` targets production. See [Deployments](#deployments). | No | `""` |
 | `REGION` | Region to deploy the agent to. If empty defaults to the nearest LiveKit Cloud region. | No | `""` |
 | `WORKING_DIRECTORY` | Directory containing the agent configuration | No | `.` |
 | `SLACK_TOKEN` | Slack Bot Token for sending notifications | No | - |

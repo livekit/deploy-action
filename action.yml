@@ -19,7 +19,7 @@ branding:
   color: purple
 inputs:
   OPERATION:
-    description: Operation to perform (create, deploy, status)
+    description: Operation to perform (create, deploy, promote, status, status-retry, delete)
     required: true
     default: status
   WORKING_DIRECTORY:
@@ -40,6 +40,13 @@ inputs:
     description: Region to deploy to. If not specified, the nearest LiveKit Cloudregion will be used.
     required: false
     default: ""
+  DEPLOYMENT:
+    description: >-
+      Agent deployment to target. Empty (default) or "production" targets production.
+      Used by deploy, status, status-retry, delete (deletes only that non-production deployment),
+      and promote (the non-production deployment to promote to production). Ignored by create.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -54,6 +61,7 @@ runs:
           -e INPUT_WORKING_DIRECTORY="${{ inputs.WORKING_DIRECTORY }}" \
           -e INPUT_TIMEOUT="${{ inputs.TIMEOUT }}" \
           -e INPUT_REGION="${{ inputs.REGION }}" \
+          -e INPUT_DEPLOYMENT="${{ inputs.DEPLOYMENT }}" \
           -e SLACK_TOKEN="${{ inputs.SLACK_TOKEN }}" \
           -e SLACK_CHANNEL="${{ inputs.SLACK_CHANNEL }}" \
           -e LIVEKIT_URL="${{ env.LIVEKIT_URL }}" \
